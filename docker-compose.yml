@@ -1,0 +1,80 @@
+services:
+  redis:
+    image: redis:7-alpine
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        WITH_GLIDER: "false"
+    command: ["/bin/sh", "-lc", "chmod +x /app/main.sh && exec /app/main.sh api"]
+    env_file:
+      - .env
+    environment:
+      - APP_HOST=${APP_HOST:-0.0.0.0}
+      - APP_PORT=${APP_PORT:-8000}
+      - WORKERS=${WORKERS:-2}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL:-redis://redis:6379/0}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND:-redis://redis:6379/1}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
+      - FETCH_INTERVAL=${FETCH_INTERVAL:-3600}
+      - HEALTHCHECK_INTERVAL=${HEALTHCHECK_INTERVAL:-1800}
+      - HEALTHCHECK_WORKERS=${HEALTHCHECK_WORKERS:-10}
+      - PROXYPOOL_DB=${PROXYPOOL_DB:-/app/data/data.db}
+    ports:
+      - "${API_HOST_PORT:-18000}:8000"
+    depends_on:
+      - redis
+    volumes:
+      - data:/app/data
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        WITH_GLIDER: "true"
+    command: ["/app/main.sh", "worker"]
+    env_file:
+      - .env
+    environment:
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL:-redis://redis:6379/0}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND:-redis://redis:6379/1}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
+      - HEALTHCHECK_WORKERS=${HEALTHCHECK_WORKERS:-10}
+      - PROXYPOOL_DB=${PROXYPOOL_DB:-/app/data/data.db}
+      - GLIDER_BIN=${GLIDER_BIN:-/usr/local/bin/glider}
+    depends_on:
+      - redis
+    volumes:
+      - data:/app/data
+      - glider:/app/glider
+  beat:
+    build: .
+    command: ["/app/main.sh", "beat"]
+    env_file:
+      - .env
+    environment:
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL:-redis://redis:6379/0}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND:-redis://redis:6379/1}
+      - FETCH_INTERVAL=${FETCH_INTERVAL:-3600}
+      - PROXYPOOL_DB=${PROXYPOOL_DB:-/app/data/data.db}
+    depends_on:
+      - redis
+    volumes:
+      - data:/app/data
+  glider:
+    build:
+      context: .
+      dockerfile: Dockerfile.glider
+    volumes:
+      - glider:/config
+    ports:
+      - "${GLIDER_HTTP_PORT:-10707}:${GLIDER_HTTP_PORT:-10707}"
+      - "${GLIDER_ALT_PORT:-10710}:${GLIDER_ALT_PORT:-10710}"
+    depends_on:
+      - worker
+
+volumes:
+  data:
+  glider:

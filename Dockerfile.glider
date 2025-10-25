@@ -1,0 +1,15 @@
+FROM nadoo/glider:latest AS upstream
+
+FROM alpine:3.20
+RUN apk add --no-cache ca-certificates
+COPY --from=upstream /app/glider /usr/local/bin/glider
+RUN chmod +x /usr/local/bin/glider
+
+COPY scripts/glider_entry.sh /glider_entry.sh
+RUN chmod +x /glider_entry.sh
+
+ENV GLIDER_BIN=/usr/local/bin/glider \
+    GLIDER_CONFIG=/config/glider.conf \
+    RELOAD_INTERVAL=30
+
+ENTRYPOINT ["/bin/sh","-lc","/glider_entry.sh"]

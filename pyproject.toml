@@ -1,0 +1,19 @@
+[project]
+name = "airproxypool"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "fofa-hack>=2.5.2",
+    "geoip2>=5.1.0",
+    "pycryptodomex>=3.23.0",
+    "pyyaml>=6.0.3",
+    "requests>=2.32.5",
+    "tqdm>=4.67.1",
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.30.6",
+    "celery>=5.3.6",
+    "redis>=5.0.7",
+    "SQLAlchemy>=2.0.30",
+]
