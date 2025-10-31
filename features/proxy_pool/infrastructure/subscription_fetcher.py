@@ -15,14 +15,17 @@ from features.proxy_pool.domain.subscriptions import FetchedContent
 @dataclass
 class RequestsSubscriptionFetcher(SubscriptionFetcher):
     timeout: int = 30
-    verify_tls: bool = False
+    verify_tls: bool = True
     headers: Optional[Dict[str, str]] = None
 
     def __post_init__(self):
         self._session = requests.Session()
         if not self.verify_tls:
             self._session.verify = False
-            requests.packages.urllib3.disable_warnings()  # type: ignore[attr-defined]
+            try:
+                requests.packages.urllib3.disable_warnings()  # type: ignore[attr-defined]
+            except AttributeError:
+                pass
 
     def fetch(self, url: str) -> FetchedContent:
         response = self._session.get(url, timeout=self.timeout, headers=self.headers)

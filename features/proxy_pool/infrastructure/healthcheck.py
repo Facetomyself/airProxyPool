@@ -51,4 +51,9 @@ def check_forward(glider_bin: Path, forward_line: str, port: int) -> tuple[bool,
                     proc.kill()
                 except Exception:
                     pass
-
+        try:
+            cfg.unlink()
+        except FileNotFoundError:
+            pass
+        except Exception:
+            pass

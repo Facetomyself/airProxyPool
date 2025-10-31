@@ -12,6 +12,7 @@ from features.proxy_pool.infrastructure.config_writer import FileConfigWriter
 from features.proxy_pool.infrastructure.forward_deduplicator import ForwardLineDeduplicator
 from features.proxy_pool.infrastructure.forward_tester import GliderForwardTester
 from features.proxy_pool.infrastructure.glider_tunnel import GliderTunnelProcess
+from features.proxy_pool.infrastructure.settings import glider_alt_listen
 from features.proxy_pool.infrastructure.source_reader import FileSubscriptionSource
 from features.proxy_pool.infrastructure.subscription_fetcher import (
     RequestsSubscriptionFetcher,
@@ -23,7 +24,7 @@ from features.proxy_pool.infrastructure.subscription_parsers import (
 
 SUBSCRIPTIONS_FILE = 'subscriptions.txt'
 CONFIG_OUTPUT = str(Path('glider') / 'glider.conf')
-LISTEN = ':10710'
+LISTEN = glider_alt_listen()
 INTERVAL_SECONDS = 6000
 GLIDER_BINARY = str(Path('glider') / ('glider.exe' if os.name == 'nt' else 'glider'))
 RUN_ONCE = False

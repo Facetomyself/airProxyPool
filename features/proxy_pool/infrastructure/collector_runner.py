@@ -2,17 +2,19 @@ from __future__ import annotations
 
 import subprocess
 import sys
-import yaml
 from pathlib import Path
 
+import yaml
+
 from .clash_parser import parse_config as clash_parse_to_forwards
+from .settings import glider_http_listen
 
 
-BASE_CONFIG = """# Verbose mode, print logs
+BASE_CONFIG_TEMPLATE = """# Verbose mode, print logs
 verbose=true
 
 # 监听地址
-listen=:10707
+listen={listen}
 
 # Round Robin mode: rr
 # High Availability mode: ha
@@ -24,19 +26,17 @@ checkinterval=0
 """
 
 
+def _build_base_config() -> str:
+    listen = glider_http_listen()
+    return BASE_CONFIG_TEMPLATE.format(listen=listen)
+
+
 def update_glider_conf(forward_content: str, glider_conf_path: Path) -> None:
     glider_conf_path.parent.mkdir(parents=True, exist_ok=True)
-    if not glider_conf_path.exists():
-        glider_conf_path.write_text(BASE_CONFIG + forward_content, encoding='utf-8')
-        return
-    content = glider_conf_path.read_text(encoding='utf-8')
-    # replace all forward= lines block
-    import re
-    if re.search(r'forward=.*', content):
-        new_content = re.sub(r'(forward=.*\n)+', forward_content, content)
-    else:
-        new_content = content.rstrip() + '\n' + forward_content
-    glider_conf_path.write_text(new_content, encoding='utf-8')
+    base_config = _build_base_config()
+    if forward_content and not forward_content.endswith("\n"):
+        forward_content = f"{forward_content}\n"
+    glider_conf_path.write_text(base_config + forward_content, encoding="utf-8")
 
 
 def run_collect_and_update_glider(project_root: Path | None = None) -> int:

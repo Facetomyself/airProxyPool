@@ -6,6 +6,7 @@ from typing import List, Optional, Sequence
 from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
+from sqlalchemy.dialects.sqlite import insert
 
 from .db import ProxyORM, SessionLocal
 from ..domain.models import Proxy
@@ -19,28 +20,37 @@ class ProxyRepository:
         self._session.close()
 
     def upsert_many(self, proxies: Sequence[Proxy]) -> int:
+        if not proxies:
+            return 0
         count = 0
         for p in proxies:
-            try:
-                existing = self._session.execute(select(ProxyORM).where(ProxyORM.uri == p.uri)).scalar_one_or_none()
-                if existing is None:
-                    orm = ProxyORM(
-                        uri=p.uri,
-                        scheme=p.scheme,
-                        host=p.host,
-                        port=p.port,
-                        label=p.label,
-                    )
-                    self._session.add(orm)
-                else:
-                    existing.scheme = p.scheme
-                    existing.host = p.host
-                    existing.port = p.port
-                    existing.label = p.label
-                count += 1
-            except IntegrityError:
-                self._session.rollback()
-        self._session.commit()
+            stmt = (
+                insert(ProxyORM)
+                .values(
+                    uri=p.uri,
+                    scheme=p.scheme,
+                    host=p.host,
+                    port=p.port,
+                    label=p.label,
+                )
+                .on_conflict_do_update(
+                    index_elements=[ProxyORM.uri],
+                    set_={
+                        "scheme": p.scheme,
+                        "host": p.host,
+                        "port": p.port,
+                        "label": p.label,
+                        "updated_at": datetime.utcnow(),
+                    },
+                )
+            )
+            self._session.execute(stmt)
+            count += 1
+        try:
+            self._session.commit()
+        except IntegrityError:
+            self._session.rollback()
+            raise
         return count
 
     def list(self, min_score: float = 0.0, limit: int = 200) -> List[Proxy]:
@@ -100,4 +110,3 @@ class ProxyRepository:
             created_at=orm.created_at,
             updated_at=orm.updated_at,
         )
-

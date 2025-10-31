@@ -16,4 +16,5 @@ dependencies = [
     "celery>=5.3.6",
     "redis>=5.0.7",
     "SQLAlchemy>=2.0.30",
+    "pytest>=8.4.2",
 ]

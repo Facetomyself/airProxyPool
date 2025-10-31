@@ -41,7 +41,9 @@ class GliderForwardTester(ForwardTester):
                         usable.append(node)
                 except Exception:
                     continue
-        return usable if usable else nodes
+        if not usable:
+            return []
+        return usable
 
     def _ensure_glider_executable(self):
         if not self.glider_path.exists():
@@ -94,4 +96,3 @@ class GliderForwardTester(ForwardTester):
             "check=http://www.msftconnecttest.com/connecttest.txt#expect=200\n\n"
             "checkinterval=300\n\n"
         )
-

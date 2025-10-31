@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+import logging
+from dataclasses import dataclass, field
 from typing import Iterable, List
 
 from features.proxy_pool.application.ports import (
@@ -23,6 +24,7 @@ class SubscriptionSyncService:
     parsers: Iterable[ParserStrategy]
     deduplicator: ForwardDeduplicator
     tester: ForwardTester
+    _logger: logging.Logger = field(default_factory=lambda: logging.getLogger(__name__), init=False, repr=False)
 
     def sync(self, urls: Iterable[str]) -> SyncResult:
         url_list = list(urls)
@@ -35,15 +37,18 @@ class SubscriptionSyncService:
                 parser = self._locate_parser(content)
                 if parser is None:
                     stats.record_failure(url, "no parser available")
+                    self._logger.warning("No parser available for subscription: %s", url)
                     continue
                 nodes = parser.parse(content)
                 if not nodes:
                     stats.record_failure(url, "no usable nodes")
+                    self._logger.info("Parser %s returned no nodes for %s", parser.name, url)
                     continue
                 collected.extend(nodes)
                 stats.record_success(url, len(nodes), parser.name)
             except Exception as exc:  # pylint: disable=broad-except
                 stats.record_failure(url, str(exc))
+                self._logger.exception("Failed to sync subscription %s", url)
 
         deduped = self.deduplicator.deduplicate(collected)
         tested = self.tester.filter_usable(deduped)
