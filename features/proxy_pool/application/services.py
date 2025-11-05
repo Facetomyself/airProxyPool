@@ -32,19 +32,13 @@ def upsert_proxies_from_conf() -> int:
     proxies = load_proxies_from_glider_conf(conf_path)
     if not proxies:
         return 0
-    repo = ProxyRepository()
-    try:
+    with ProxyRepository() as repo:
         return repo.upsert_many(proxies)
-    finally:
-        repo.close()
 
 
 def list_proxies(min_score: float = 0.0, limit: int = 200) -> List[Proxy]:
-    repo = ProxyRepository()
-    try:
+    with ProxyRepository() as repo:
         return repo.list(min_score=min_score, limit=limit)
-    finally:
-        repo.close()
 
 
 def _deterministic_pick(candidates: List[Proxy], token: str, rotate_step: int) -> Proxy:
@@ -63,4 +57,3 @@ def get_rotated_proxy(token: str, rotate_every: int, min_score: float = 20.0) ->
     if not candidates:
         return None
     return _deterministic_pick(candidates, token, rotate_step)
-

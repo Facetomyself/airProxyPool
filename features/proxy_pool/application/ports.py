@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Iterable, List, Protocol
+from typing import Iterable, List, Protocol, Sequence, Callable, Optional
 
 from features.proxy_pool.domain.subscriptions import (
     FetchedContent,
@@ -9,6 +9,7 @@ from features.proxy_pool.domain.subscriptions import (
     SchedulerConfig,
     SyncResult,
 )
+from features.proxy_pool.domain.models import Proxy
 
 
 class SubscriptionFetcher(Protocol):
@@ -60,3 +61,35 @@ class SubscriptionSource(Protocol):
 class SchedulerLifecycle(Protocol):
     def run(self, config: SchedulerConfig) -> None:
         """Execute scheduler loop until termination."""
+
+
+class ProxyCollector(Protocol):
+    def collect(self) -> List[Proxy]:
+        """Return proxies sourced from subscriptions or other upstream feeds."""
+
+
+class ProxyHealthService(Protocol):
+    def evaluate(self) -> List[Proxy]:
+        """Recalculate health metrics for stored proxies and return prioritized listing."""
+
+
+class ProxyPublisher(Protocol):
+    def publish(self, proxies: List[Proxy]) -> None:
+        """Publish processed proxies to downstream consumers such as glider."""
+
+
+class ProxyStore(Protocol):
+    def upsert_many(self, proxies: Sequence[Proxy]) -> int:
+        """Persist or update proxies."""
+
+    def close(self) -> None:
+        """Release underlying resources."""
+
+    def list(self, min_score: float = 0.0, limit: int = 200) -> List[Proxy]:
+        """Retrieve proxies ordered by score."""
+
+    def update_health(self, uri: str, ok: bool, latency_ms: Optional[float]) -> None:
+        """Persist health metrics for a single proxy."""
+
+
+ProxyStoreFactory = Callable[[], ProxyStore]

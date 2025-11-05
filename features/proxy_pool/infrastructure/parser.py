@@ -25,6 +25,11 @@ def parse_forwards(lines: Iterable[str]) -> List[Proxy]:
     return proxies
 
 
+def format_forward_line(proxy: Proxy) -> str:
+    suffix = f"#{proxy.label}" if proxy.label else ""
+    return f"forward={proxy.uri}{suffix}"
+
+
 def _extract_host_port(uri: str) -> tuple[str, int]:
     # ss://METHOD:PASSWORD@host:port...
     # vmess://none:UUID@host:port?alterID=...

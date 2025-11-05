@@ -10,7 +10,7 @@ from pydantic import BaseModel
 
 from ..application import services
 from ..infrastructure.parser import _extract_host_port
-from ..infrastructure.collector_runner import run_collect_and_update_glider
+from ..infrastructure.orchestrator_factory import build_proxy_pool_orchestrator
 
 
 router = APIRouter()
@@ -91,9 +91,10 @@ class FetchResult(BaseModel):
 
 @router.post("/proxies/fetch", response_model=FetchResult)
 def fetch_now():
+    project_root = Path(os.getcwd())
+    orchestrator = build_proxy_pool_orchestrator(project_root=project_root)
     try:
-        run_collect_and_update_glider(Path(os.getcwd()))
+        result = orchestrator.refresh_pool()
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"collector failed: {e}")
-    updated = services.upsert_proxies_from_conf()
-    return FetchResult(updated=updated)
+    return FetchResult(updated=result.stored)

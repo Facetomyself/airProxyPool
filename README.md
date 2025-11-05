@@ -93,6 +93,7 @@ http_proxy=http://127.0.0.1:10707 curl http://httpbin.org/ip
   - `GLIDER_HTTP_PORT` = 10707 — glider 对外端口 1（HTTP/SOCKS）
   - `GLIDER_ALT_PORT` = 10710 — glider 对外端口 2（HTTP/SOCKS）
   - `GLIDER_BIN` = /usr/local/bin/glider — 仅 worker 容器使用（临时 glider 健康探测）
+  - `GLIDER_SCORE_THRESHOLD` = 60 — 健康检查后重写 glider.conf 时的高分阈值（得分低于该值的节点会移动到列表末尾）
   - 可选 wrapper 变量：
     - `GLIDER_CONFIG` = /config/glider.conf — glider 配置文件（glider 服务容器内）
     - `RELOAD_INTERVAL` = 30 — glider 热重载检测间隔（秒）
@@ -103,10 +104,10 @@ http_proxy=http://127.0.0.1:10707 curl http://httpbin.org/ip
 
 此方式通过容器内的 Worker 自动聚合免费节点，无需本地安装依赖或子模块初始化。
 
-- 启动后，Worker 会按 `FETCH_INTERVAL` 周期采集 → 解析为 forward= → 写入 glider.conf（共享卷）→ glider 热重载生效。
-- 立即采集（可选）：
+- 启动后，Worker 会按 `FETCH_INTERVAL` 周期采集 → 存入数据库 → 触发健康检查评分 → 仅发布高分代理到 glider.conf（共享卷）→ glider 热重载生效。
+- 立即刷库（可选）：
 ```bash
-docker compose exec worker python -c "from features.proxy_pool.infrastructure.collector_runner import run_collect_and_update_glider; run_collect_and_update_glider()"
+docker compose exec worker python -c "from pathlib import Path; from features.proxy_pool.infrastructure.orchestrator_factory import build_proxy_pool_orchestrator; build_proxy_pool_orchestrator(project_root=Path('.')).refresh_pool()"
 ```
 - 默认隧道端口：127.0.0.1:10707（与 10710）
 

@@ -16,6 +16,12 @@ class ProxyRepository:
     def __init__(self, session: Optional[Session] = None) -> None:
         self._session = session or SessionLocal()
 
+    def __enter__(self) -> ProxyRepository:
+        return self
+
+    def __exit__(self, exc_type, exc, tb) -> None:
+        self.close()
+
     def close(self) -> None:
         self._session.close()
 
